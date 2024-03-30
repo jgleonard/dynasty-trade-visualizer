@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Transactions Visualization</title>
+    <title>Dynasty Trade Visualizer</title>
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <style>
         #graph-container {
@@ -22,7 +22,7 @@
 </head>
 <body>
     <div id="graph-container">
-        <h1>Dynasty League Transaction Graph</h1>
+        <h1>Dynasty League Trade Graph</h1>
         <svg id="graph"></svg>
     </div>
 
@@ -156,7 +156,7 @@
                     div.transition()		
                         .duration(200)		
                         .style("opacity", .9);		
-                    div.html(`Transactions: ${d.transactions}`)	
+                    div.html(`Owner: ${d.label} <br> Transactions: ${d.transactions}`)	
                         .style("left", (event.pageX) + "px")		
                         .style("top", (event.pageY - 28) + "px");	
                     })					
