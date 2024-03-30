@@ -6,17 +6,35 @@
     <title>Game Transactions Visualization</title>
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <style>
-        /* Add any custom styling here */
+        #graph-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid black;
+            padding: 20px;
+        }
+
+        #graph-container h1 {
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <div id="graph-container"></div>
+    <div id="graph-container">
+        <h1>Dynasty League Transaction Graph</h1>
+        <svg id="graph"></svg>
+    </div>
 
     <script>
+        // Get League ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const leagueId = urlParams.get('leagueId');
+        
         // Fetch league data from Sleeper API to get roster_ids and user_ids using the roster API, then add the mapping to display_name from the user API
         const owners = {};
 
-        fetch('https://api.sleeper.app/v1/league/1048260778614194176/rosters')
+        fetch('https://api.sleeper.app/v1/league/' + leagueId + '/rosters')
             .then(response => {
                 if (response.headers.get('Content-Type').includes('application/json')) {
                     return response;
@@ -56,7 +74,7 @@
             })
         
         // Fetch data from Sleeper API
-        fetch('https://api.sleeper.app/v1/league/1048260778614194176/transactions/1')
+        fetch('https://api.sleeper.app/v1/league/' + leagueId + '/transactions/1')
 
             .then(response => {
                 if (response.headers.get('Content-Type').includes('application/json')) {
@@ -80,8 +98,10 @@
                         console.log(transaction.roster_ids);
                         transaction.roster_ids.forEach(player => {
                             if (!nodes.find(node => node.id === player)) {
-                                nodes.push({ id: player, label: owners[player].display_name });
+                                nodes.push({ id: player, label: owners[player].display_name, transactions: 0 });
                             }
+                            // Increment the transactions count for the owner
+                            owners[player].transactions = (owners[player].transactions || 0) + 1;
                         });
 
                         edges.push({ source: transaction.roster_ids[0], target: transaction.roster_ids[1] });
@@ -89,11 +109,18 @@
                 });
 
                 // Create graph
-                const svg = d3.create("svg").attr("width", 800).attr("height", 600);
+                const svg = d3.select("#graph")
+                    .attr("width", 800)
+                    .attr("height", 500);
                 const simulation = d3.forceSimulation(nodes)
                     .force("link", d3.forceLink(edges).id(d => d.id))
                     .force("charge", d3.forceManyBody().strength(-400))
                     .force("center", d3.forceCenter(400, 300));
+
+                // Define the scale
+                const radiusScale = d3.scaleSqrt()
+                    .domain([0, d3.max(nodes, d => d.transactions)])
+                    .range([2, 20]); // Increase the range values
 
                 const link = svg.selectAll("line")
                     .data(edges)
@@ -104,15 +131,43 @@
                 const node = svg.selectAll("circle")
                     .data(nodes)
                     .enter().append("circle")
-                    .attr("r", 5)
+                    .attr("r", d => radiusScale(d.transactions))
                     .attr("fill", "#1f77b4")
+                    .on("click", function(event, d) {
+                        // This function will be called when a node is clicked
+                        // 'event' is the event object
+                        // 'd' is the data associated with the clicked node
+                        console.log(`Node clicked: ${d.id}`);
+                    })
                     .call(drag(simulation));
+
+
+                const div = d3.select("body").append("div")	
+                    .attr("class", "tooltip")				
+                    .style("opacity", 0);
+
+                node.on("mouseover", function(event, d) {		
+                    div.transition()		
+                        .duration(200)		
+                        .style("opacity", .9);		
+                    div.html(`Transactions: ${d.transactions}`)	
+                        .style("left", (event.pageX) + "px")		
+                        .style("top", (event.pageY - 28) + "px");	
+                    })					
+                .on("mouseout", function(d) {		
+                    div.transition()		
+                        .duration(500)		
+                        .style("opacity", 0);	
+                });
+
+                node.append("title")
+                    .text(d => `Transactions: ${d.transactions}`);
 
                 const labels = svg.selectAll("text")
                     .data(nodes)
                     .enter().append("text")
                     .text(d => d.label)
-                    .attr('x', d => d.x)
+                    .attr('x', d => d.x + 2)
                     .attr('y', d => d.y)
                     .style("font-size", "12px") // Set the font size
                     .style("fill", "#333"); // Set the text color
