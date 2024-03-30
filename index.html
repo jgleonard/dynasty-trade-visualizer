@@ -27,9 +27,17 @@
     </div>
 
     <script>
-        // Get League ID from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const leagueId = urlParams.get('leagueId');
+        // Get League ID from URL query parameter or prompt the user for it
+        let leagueId = new URLSearchParams(window.location.search).get('leagueId');
+        if (!leagueId) {
+            leagueId = prompt('Please enter the leagueId:');
+        }
+
+        // Check if leagueId is null or empty
+        if (!leagueId) {
+            alert('No leagueId provided. Please enter a leagueId.');
+            throw new Error('No leagueId provided.');
+        }
         
         // Fetch league data from Sleeper API to get roster_ids and user_ids using the roster API, then add the mapping to display_name from the user API
         const owners = {};
