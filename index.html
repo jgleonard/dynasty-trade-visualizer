@@ -74,40 +74,41 @@
             })
         
         // Fetch data from Sleeper API
-        fetch('https://api.sleeper.app/v1/league/' + leagueId + '/transactions/1')
+        async function fetchTransactions(leagueId, totalPages) {
+            const pages = Array.from({ length: totalPages }, (_, i) => i + 1); // [1, 2, ..., totalPages]
+            const requests = pages.map(page =>
+                fetch(`https://api.sleeper.app/v1/league/${leagueId}/transactions/${page}`)
+                    .then(response => {
+                        if (!response.ok || !response.headers.get('Content-Type').includes('application/json')) {
+                            throw new Error('Content type is not JSON or response is not OK');
+                        }
+                        return response.json();
+                    })
+            );
+            return Promise.all(requests);
+        }
 
-            .then(response => {
-                if (response.headers.get('Content-Type').includes('application/json')) {
-                    return response;
-                }
-                throw new Error('Content type is not JSON');
-            })
-
-            .catch(error => {
-                console.error('Error fetching data:', error);
-            })
-
-            .then(response => response.json())
+        fetchTransactions(leagueId, 18)
             .then(data => {
                 // Process data
                 const nodes = [];
                 const edges = [];
+                data.forEach(page => {
+                    page.forEach(transaction => {
+                        if (transaction.type === 'trade') {
+                            transaction.roster_ids.forEach(player => {
+                                let node = nodes.find(node => node.id === player);
+                                if (!node) {
+                                    node = { id: player, label: owners[player].display_name, transactions: 0 };
+                                    nodes.push(node);
+                                }
+                                // Increment the transactions count for the node
+                                node.transactions++;
+                            });
 
-                data.forEach(transaction => {
-                    if (transaction.type === 'trade') {
-                        console.log(transaction.roster_ids);
-                        transaction.roster_ids.forEach(player => {
-                            let node = nodes.find(node => node.id === player);
-                            if (!node) {
-                                node = { id: player, label: owners[player].display_name, transactions: 0 };
-                                nodes.push(node);
-                            }
-                            // Increment the transactions count for the node
-                            node.transactions++;
-                        });
-
-                        edges.push({ source: transaction.roster_ids[0], target: transaction.roster_ids[1] });
-                    }
+                            edges.push({ source: transaction.roster_ids[0], target: transaction.roster_ids[1] });
+                        }
+                    });
                 });
 
                 // Create graph
