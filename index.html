@@ -147,6 +147,21 @@
                     })
                     .call(drag(simulation));
 
+                simulation.on("tick", () => {
+                    link
+                        .attr("x1", d => d.source.x)
+                        .attr("y1", d => d.source.y)
+                        .attr("x2", d => d.target.x)
+                        .attr("y2", d => d.target.y);
+
+                    node
+                        .attr("cx", d => d.x)
+                        .attr("cy", d => d.y);
+
+                    labels
+                        .attr("x", d => d.x)
+                        .attr("y", d => d.y);
+                });
 
                 const div = d3.select("body").append("div")	
                     .attr("class", "tooltip")				
@@ -166,8 +181,10 @@
                         .style("opacity", 0);	
                 });
 
+                /* Tooltip
                 node.append("title")
                     .text(d => `Transactions: ${d.transactions}`);
+                */
 
                 const labels = svg.selectAll("text")
                     .data(nodes)
@@ -177,23 +194,6 @@
                     .attr('y', d => d.y)
                     .style("font-size", "12px") // Set the font size
                     .style("fill", "#333"); // Set the text color
-
-
-                simulation.on("tick", () => {
-                    link
-                        .attr("x1", d => d.source.x)
-                        .attr("y1", d => d.source.y)
-                        .attr("x2", d => d.target.x)
-                        .attr("y2", d => d.target.y);
-
-                    node
-                        .attr("cx", d => d.x)
-                        .attr("cy", d => d.y);
-
-                    labels
-                        .attr("x", d => d.x)
-                        .attr("y", d => d.y);
-                });
 
                 d3.select("#graph-container").append(() => svg.node());
             })
